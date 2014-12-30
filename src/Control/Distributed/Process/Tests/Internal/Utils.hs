@@ -24,6 +24,7 @@ module Control.Distributed.Process.Tests.Internal.Utils
   , shouldMatch
   , shouldContain
   , shouldNotContain
+  , shouldExitWith
   , expectThat
   , synchronisedAssertion
   -- test process utilities
@@ -76,6 +77,7 @@ import Control.Concurrent.MVar
 import Control.Distributed.Process
 import Control.Distributed.Process.Node
 import Control.Distributed.Process.Serializable()
+import Control.Distributed.Process.Extras(Resolvable(..))
 
 import Control.Exception (AsyncException(ThreadKilled), SomeException)
 import Control.Monad (forever)
@@ -230,3 +232,8 @@ tryForkProcess node p = do
   tid <- liftIO myThreadId
   forkProcess node $ catch p (\e -> liftIO $ throwTo tid (e::SomeException))
 
+shouldExitWith :: Resolvable a => a -> DiedReason -> Process ()
+shouldExitWith a r = do
+  _ <- resolve a
+  d <- receiveWait [ match (\(ProcessMonitorNotification _ _ r') -> return r') ]
+  d `shouldBe` equalTo r
